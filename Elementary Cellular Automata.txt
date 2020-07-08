@@ -1,0 +1,62 @@
+Started: 07/08/20
+Last worked on 07/08/20
+
+
+
+
+
+"Source":
+
+
+
+Rule = 110
+
+f(x) = Sigma (n = 1, infinity) ( // For loop (start at 2's bit)
+    
+    // Get current cell
+    SurrCells = GetSurroundingCells (x, n)
+    NewCell = GetRuleOutput (SurrCells, Rule)
+    returnSigma NewCell * (2 ^ n)
+    
+)
+
+
+
+GetSurroundingCells (Cells, Index) = (
+    Cells = Cells % (2 ^ (Index + 2)) // Remove higher bits
+    Cells = Cells - (Cells % (2 ^ (Index - 1))) // Remove lower bits
+    ThisCell = Cells / (2 ^ (Index - 1)) // Shift to beginning
+    return ThisCell
+)
+
+
+
+GetRuleOutput (RuleNum, Rule) = ( // This is very similar to the prev function
+    Rule = Rule % (2 ^ (RuleNum + 1)) // Remove higher bits
+    Rule = Rule - (Rule % (2 ^ RuleNum)) // Remove lower bits
+    RuleOut = Rule / (2 ^ RuleNum) // Shift to beginning
+    return RuleOut
+)
+
+
+
+
+
+
+
+
+
+
+Final:
+
+GetSurroundingCells (Cells, Index) = ((Cells % (2 ^ (Index + 2))) - ((Cells % (2 ^ (Index + 2))) % (2 ^ (Index - 1)))) / (2 ^ (Index - 1))
+GetRuleOutput (RuleNum, Rule) = ((Rule % (2 ^ (RuleNum + 1))) - ((Rule % (2 ^ (RuleNum + 1))) % (2 ^ RuleNum))) / (2 ^ RuleNum)
+
+f(x) = Sigma (n = 1, infinity) (((Rule % (2 ^ (((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1)) + 1))) - ((Rule % (2 ^ (((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1)) + 1))) % (2 ^ ((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1))))) / (2 ^ ((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1))) * (2 ^ n))
+
+
+
+f(x) = Sigma (n = 1, infinity) (((Rule % (2 ^ (((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n
+- 1)) + 1))) - ((Rule % (2 ^ (((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1)) + 1))) % (
+2 ^ ((x % (2 ^ (n + 2))) - ((x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1))))) / (2 ^ ((x % (2 ^ (n + 2) )) - ((
+x % (2 ^ (n + 2))) % (2 ^ (n - 1)))) / (2 ^ (n - 1))) * (2 ^ n))
