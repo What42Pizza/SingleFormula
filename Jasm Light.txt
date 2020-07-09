@@ -1,0 +1,86 @@
+Started 07/08/20
+Last worked on 07/08/20
+
+
+
+ --------------------------------------------- WIP ---------------------------------------------
+
+
+
+
+
+
+
+
+
+
+Jasm Light 2:
+https://github.com/What42Pizza/JASM-Light-2
+
+This formula is designed to emulate Jasm
+
+
+
+Num: 0000000011111111222222223333333344444444555555556666666677777777...
+     Pointer-------- Data 2 ALU A--- ALU B-- ALU C-- RAM -----------
+
+
+
+
+
+Bits = 8
+
+
+
+f(x) = (
+    
+    Pointer = GetPointer (x)
+    DataReg2 = GetDataReg2 (x)
+    ALUA = GetALUA (x)
+    ALUB = GetALUB (x)
+    ALUC = GetALUC (x)
+    Instruction = GetRam (x, Pointer)
+    DataReg1 = GetRam (x, Pointer + 1)
+    
+)
+
+
+
+
+
+GetRam (In, Index) = (
+    HighRemoved = In % (2 ^ (Bits * (Index + 7))) // Remove higher bits
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * (Index + 6)))) // Remove lower bits
+    Out = BothRemoved / (2 ^ (Bits * (Index + 6))) // Shift to beginning
+    return Out
+)
+
+
+
+GetPointer (In) = (
+    BothRemoved = In % (2 ^ (Bits * 2))
+)
+
+GetDataReg2 (In) = (
+    HighRemoved = In % (2 ^ (Bits * 3))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 2)))
+    Out = BothRemoved / (2 ^ (Bits * 2))
+)
+
+GetALUA (In) = (
+    HighRemoved = In % (2 ^ (Bits * 4))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 3)))
+    Out = BothRemoved / (2 ^ (Bits * 3))
+)
+
+GetALUB (In) = (
+    HighRemoved = In % (2 ^ (Bits * 5))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 4)))
+    Out = BothRemoved / (2 ^ (Bits * 4))
+)
+
+GetALUC (In) = (
+    HighRemoved = In % (2 ^ (Bits * 6))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 5)))
+    Out = BothRemoved / (2 ^ (Bits * 5))
+)
