@@ -21,8 +21,8 @@ This formula is designed to emulate Jasm
 
 
 
-Num: 0000000011111111222222223333333344444444555555556666666677777777...
-     Pointer-------- Data 2 ALU A--- ALU B-- ALU C-- RAM -----------
+Num: 000000001111111122222222333333334444444455555555666666667777777788888888...
+     IOReg-- Pointer-------- Data 2- ALU A-- ALU B-- ALU C-- RAM -----------
 
 
 
@@ -34,13 +34,17 @@ Bits = 8
 
 f(x) = (
     
+    IOReg = GetIOReg()
     Pointer = GetPointer (x)
     DataReg2 = GetDataReg2 (x)
     ALUA = GetALUA (x)
     ALUB = GetALUB (x)
     ALUC = GetALUC (x)
-    Instruction = GetRam (x, Pointer)
-    DataReg1 = GetRam (x, Pointer + 1)
+    Instruction = GetRam (Pointer)
+    DataReg1 = GetRam (Pointer + 1)
+    
+    Pointer = CalcPointer (Pointer, Instruction, x)
+    DataReg2 = CalcDataReg2 (DataReg2, Instruction, x)
     
 )
 
@@ -48,39 +52,172 @@ f(x) = (
 
 
 
-GetRam (In, Index) = (
-    HighRemoved = In % (2 ^ (Bits * (Index + 7))) // Remove higher bits
-    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * (Index + 6)))) // Remove lower bits
-    Out = BothRemoved / (2 ^ (Bits * (Index + 6))) // Shift to beginning
+GetRAM (Index) = (
+    HighRemoved = x % (2 ^ (Bits * (Index + 8))) // Remove higher bits
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * (Index + 7)))) // Remove lower bits
+    Out = BothRemoved / (2 ^ (Bits * (Index + 7))) // Shift to beginning
+    return Out
+)
+
+GetRAM (Index1, Index2) = (
+    return GetRAM (Index1 + Index2 * (2 ^ Bits))
+)
+
+
+
+
+
+GetInput (In) = (
+    BothRemoved = In % (2 ^ Bits)
+    return BothRemoved
+)
+
+GetPointer (In) = (
+    HighRemoved = In % (2 ^ (Bits * 3))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ Bits))
+    Out = BothRemoved / (2 ^ Bits)
+    return BothRemoved
+)
+
+GetDataReg2 (In) = (
+    HighRemoved = In % (2 ^ (Bits * 4))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 3)))
+    Out = BothRemoved / (2 ^ (Bits * 3))
+    return Out
+)
+
+GetALUA (In) = (
+    HighRemoved = In % (2 ^ (Bits * 5))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 4)))
+    Out = BothRemoved / (2 ^ (Bits * 4))
+    return Out
+)
+
+GetALUB (In) = (
+    HighRemoved = In % (2 ^ (Bits * 6))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 5)))
+    Out = BothRemoved / (2 ^ (Bits * 5))
+    return Out
+)
+
+GetALUC (In) = (
+    HighRemoved = In % (2 ^ (Bits * 7))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 6)))
+    Out = BothRemoved / (2 ^ (Bits * 6))
     return Out
 )
 
 
 
-GetPointer (In) = (
-    BothRemoved = In % (2 ^ (Bits * 2))
+
+
+CalcPointer (Pointer, Instruction, Num) = (
+    
+    //InstructionIs2Byte = GetBit (Instruction, 7) // Get last bit
+    NewPointer = DataReg1 + DataReg2 * (2 ^ Bits)
+    
+    
+    
+    
+    JPE_Enabled = (
+        Added = ALUA - ALUB
+        return NumIsWithin (Added, -0.1, 0.1) // Test if A - B == 0
+    )
+    
+    JPG_Enabled = (
+        Added = ALUA - ALUB - 0.5 // Poisitve if A > B, negative if A <= B (the - 0.5 is there to make 0 negative
+        Normalized = Added / abs (Added) // Go from +-x to +- 1
+        return SignToBool (Normalized) // Go from +- 1 to bool
+    )
+    
+    JPL_Enabled = (
+        Added = ALUB - ALUA - 0.5
+        Normalized = Added / abs (Added)
+        return SignToBool (Normalized)
+    )
+    
+    JMP  = InstructionIs (Instruction, 148) *  NewPointer
+    JPE  = InstructionIs (Instruction, 149) * (NewPointer * JPE_Enabled + Pointer * Not (JPE_Enabled))
+    JPG  = InstructionIs (Instruction, 150) * (NewPointer * JPG_ENabled + Pointer * Not (JPG_Enabled))
+    JPL  = InstructionIs (Instruction, 151) * (NewPointer * JPL_Enabled + Pointer * Not (JPL_Enabled))
+    JNE  = InstructionIs (Instruction, 152) * (NewPointer * Not (JPE_Enabled) + Pointer * JPE_Enabled)
+    JGE  = InstructionIs (Instruction, 153) * (NewPointer * Not (JPL_Enabled) + Pointer * JPL_Enabled)
+    JLE  = InstructionIs (Instruction, 154) * (NewPointer * Not (JPG_Enabled) + Pointer * JPG_Enabled)
+    JMPO = InstructionIs (Instruction, 155) *  DataReg1
+    JPEO = InstructionIs (Instruction, 156) * (DataReg1 * JPE_Enabled + Pointer * Not (JPE_Enabled))
+    JPGO = InstructionIs (Instruction, 157) * (DataReg1 * JPG_Enabled + Pointer * Not (JPG_Enabled))
+    JPLO = InstructionIs (Instruction, 158) * (DataReg1 * JPL_Enabled + Pointer * Not (JPL_Enabled))
+    JNEO = InstructionIs (Instruction, 159) * (DataReg1 * Not (JPE_Enabled) + Pointer * JPE_Enabled)
+    JGEO = InstructionIs (Instruction, 160) * (DataReg1 * Not (JPE_Enabled) + Pointer * JPE_Enabled)
+    JLEO = InstructionIs (Instruction, 161) * (DataReg1 * Not (JPE_Enabled) + Pointer * JPE_Enabled)
+    
+    
+    
+    return JMP + JPE + JPG + JPL + JNE + JGE + JLE + JMPO + JPEO + JPGO + JPLO + JNEO + JGEO + JLEO
+    
 )
 
-GetDataReg2 (In) = (
-    HighRemoved = In % (2 ^ (Bits * 3))
-    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 2)))
-    Out = BothRemoved / (2 ^ (Bits * 2))
+
+
+
+
+CalcDataReg2 (DataReg2, Instruction, Num) = (
+    
+    STD = InstructionIs (Instruction, 130) * DataReg1
+    RDD = InstructionIs (Instruction, 133) * GetRAM (DataReg1)
+    MCD = InstructionIs (Instruction, 3  ) * ALUC
+    MAD = InstructionIs (Instruction, 4  ) * ALUA
+    MBD = InstructionIs (Instruction, 5  ) * ALUB
+    NPD = InstructionIs (Instruction, 21 ) * IOReg
+    
+    return STD + RDD + MCD + MAD + MBD + NPD
+    
 )
 
-GetALUA (In) = (
-    HighRemoved = In % (2 ^ (Bits * 4))
-    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 3)))
-    Out = BothRemoved / (2 ^ (Bits * 3))
+
+
+CalcALUA (AlUA, Instruction, Num) {
+    
+    STA = InstructionIs (Instruction, 128) * DataReg1
+    RDA = InstructionIs (Instruction, 131) * GetRAM (DataReg1)
+    RAB = InstructionIs (Instruction, 134) * GetRAM (DataReg1 + DataReg2 * (2 ^ Bits))
+    
+    return
+    
+}
+
+
+
+
+
+GetBit (Num, Index) = (
+    HighRemoved = In % (2 ^ (Index + 1))
+    BothRemoved = HighRemoved - (HighRemoved % (2 ^ Index))
+    Out = BothRemoved / (2 ^ Index)
+    return Out
 )
 
-GetALUB (In) = (
-    HighRemoved = In % (2 ^ (Bits * 5))
-    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 4)))
-    Out = BothRemoved / (2 ^ (Bits * 4))
+
+
+NumIsWithin (Num, Min, Max) = ( // Output 1 if Num is within Min and Max and 0 if Num is not within Min and Max (it fails (0/0) is Num == Min or Max)
+    Quad = (Num - Min) * (Num - Max) * -1 // this will be positive if Num is within range and negative if outside range
+    Normalized Quad / abs (Quad) // If you just had Quad / Quad, it would always be a positive 1. The abs() makes it a positive 1 or negative 1 depending on wether Quad is positive or negative
+    Output = SignToBool (Normalized)
+    return Output
 )
 
-GetALUC (In) = (
-    HighRemoved = In % (2 ^ (Bits * 6))
-    BothRemoved = HighRemoved - (HighRemoved % (2 ^ (Bits * 5)))
-    Out = BothRemoved / (2 ^ (Bits * 5))
+
+
+InstructionIs (Instruction, Num) = (
+    return NumIsWithin (Instruction, Num - 0.5, Num + 0.5)
+)
+
+
+
+Not (Bool) = ( // 0 -> 1, 1 -> 0
+    return (Bool - 1) * -1
+)
+
+SignToBool (Sign) = ( // -1 -> 0, 1 -> 1
+    return (Sign + 1) / 2
 )
